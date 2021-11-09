@@ -238,6 +238,11 @@ a {
     color: #729B79;
 }
 
+.chat__container #chat__container-chatlog {
+    max-height: 400px;
+    overflow-y: scroll;
+}
+
 .btn.btn-primary {
     background-color: rgb(84, 105, 212);
     box-shadow: rgba(0, 0, 0, 0) 0px 0px 0px 0px, 
