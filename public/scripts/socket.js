@@ -1,5 +1,10 @@
 const socket = io();
 
+const authorSchema = new normalizr.schema.Entity('author');
+const mensajesSchema = new normalizr.schema.Entity('mensajes',{
+    author: authorSchema
+});
+
 socket.on('listaProductos', (data) => {
     render(data);
 });
@@ -27,20 +32,14 @@ let render = (data) => {
                 </tbody>
             </table>
         `;
-        let wrapperProductos = document.querySelector('.tablaproductos__wrapper');
-        if (wrapperProductos) {
-            wrapperProductos.innerHTML = html;
-        }
+        document.querySelector('.tablaproductos__wrapper').innerHTML = html;
     } else {
         let html = `
         <div class="text-center">
             <h2>No hay productos</h2>
         </div>
         `;
-        let wrapperProductos = document.querySelector('.tablaproductos__wrapper');
-        if (wrapperProductos) {
-            wrapperProductos.innerHTML = html;
-        }
+        document.querySelector('.tablaproductos__wrapper').innerHTML = html;
     }
 }
 
@@ -68,8 +67,10 @@ socket.on('nuevoMensaje', (data) => {
 });
 
 let renderMensaje = (data) => {
+    document.getElementById('chat__container-compresion').innerHTML = `${data.compresion}%`;
+    const denormalizedData = normalizr.denormalize(data.normalizedData.result, [mensajesSchema], data.normalizedData.entities);
     let html = 
-    data.map((m)=>`
+    denormalizedData.map((m)=>`
         <div class="chat__row">
             <div class="chat__avatar">
                 <img src="${m.author.avatar}" alt="${m.author.nombre}">
@@ -79,10 +80,7 @@ let renderMensaje = (data) => {
             <em>${m.text}</em>
         </div>
     `).join(' ');
-    let wrapperMensajes = document.querySelector('.chat__container');
-    if (wrapperMensajes) {
-        wrapperMensajes.innerHTML = html;
-    }
+    document.getElementById('chat__container-chatlog').innerHTML = html;
 }
 
 const envioMensaje = () => {

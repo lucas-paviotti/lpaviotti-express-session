@@ -7,6 +7,7 @@ let { ProductoModelo } = require('./models/productos');
 let { MensajeModelo } = require('./models/mensajes');
 const generador = require('./generador/productos');
 const {normalize, schema} = require('normalizr');
+const util = require('util'); 
 const session = require('express-session');
 
 const app = express();
@@ -55,6 +56,15 @@ mongoose.connection.on("error", err => {
 mongoose.connection.on("connected", (err, res) => {
   console.log("mongoose está conectado")
 });
+
+const authorSchema = new schema.Entity('author',{},{idAttribute: 'id'});
+const mensajesSchema = new schema.Entity('mensajes',{
+    author: authorSchema
+},{idAttribute: '_id'});
+
+function print(obj) {
+    console.log(util.inspect(obj, false, 12, true));
+}
 
 routerApi.get('/productos/listar', async (req, res) => {
     try {
@@ -241,7 +251,30 @@ io.on("connection", async (socket) => {
 
     try {
         let mensajes = await MensajeModelo.find({});
-        socket.emit('nuevoMensaje', mensajes);
+        const parsedMessages = mensajes.map((m) => {
+            return {
+                author: {
+                    id: m.author.id,
+                    nombre: m.author.nombre,
+                    apellido: m.author.apellido,
+                    edad: m.author.edad,
+                    alias: m.author.alias,
+                    avatar: m.author.avatar
+                },
+                _id: m._id.toString(),
+                date: m.date,
+                text: m.text
+            };
+        });
+
+        const normalizedData = normalize(parsedMessages, [mensajesSchema]);
+        
+        const longAntes = JSON.stringify(mensajes).length;
+        const longDespues = JSON.stringify(normalizedData).length;
+
+        const compresion = Math.round((longAntes - longDespues) /  longAntes * 100);
+
+        socket.emit('nuevoMensaje', {normalizedData, compresion});
     }
     catch(e) {
         throw `No se pudieron enviar los mensajes a traves de websocket: ${e}`;
@@ -271,7 +304,30 @@ io.on("connection", async (socket) => {
         }
         finally {
             let mensajes = await MensajeModelo.find({});
-            socket.emit('nuevoMensaje', mensajes);
+            const parsedMessages = mensajes.map((m) => {
+                return {
+                    author: {
+                        id: m.author.id,
+                        nombre: m.author.nombre,
+                        apellido: m.author.apellido,
+                        edad: m.author.edad,
+                        alias: m.author.alias,
+                        avatar: m.author.avatar
+                    },
+                    _id: m._id.toString(),
+                    date: m.date,
+                    text: m.text
+                };
+            });
+
+            const normalizedData = normalize(parsedMessages, [mensajesSchema]);
+            
+            const longAntes = JSON.stringify(mensajes).length;
+            const longDespues = JSON.stringify(normalizedData).length;
+
+            const compresion = Math.round((longAntes - longDespues) /  longAntes * 100);
+
+            socket.emit('nuevoMensaje', {normalizedData, compresion});
         }
     });
 });
